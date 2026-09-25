@@ -21,7 +21,6 @@
 #define ANIMATE7 animatedMatrix[3][4] = Robot('+', "+"); animatedMatrix[4][3] = Robot('+', "+"); showGeneralMatrix(animatedMatrix); repeat++;
 #define DELAY loadingDelay(); loadingDelay();
 
-// Variables
 std::vector<std::vector<Robot>> matrix(5, std::vector<Robot>(5, Robot(' ', "")));
 std::vector<std::vector<Robot>> animatedMatrix(5, std::vector<Robot>(5, Robot(' ', "")));
 std::vector<std::vector<Robot>> traceMatrix(5, std::vector<Robot>(5, Robot(' ', "")));
