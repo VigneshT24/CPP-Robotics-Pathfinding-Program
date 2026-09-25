@@ -41,7 +41,6 @@ struct CompareNode {
     }
 };
 
-constexpr int GRID_SIZE = 5;
 constexpr char OBSTACLE = '0';
 constexpr char GOAL = 'X';
 
@@ -49,26 +48,21 @@ int manhattanDistance(Position a, Position b) {
     return std::abs(a.row - b.row) + std::abs(a.col - b.col);
 }
 
-bool isInsideGrid(Position pos) {
-    return (pos.row >= 0 && pos.row < GRID_SIZE) && (pos.col >= 0 && pos.col < GRID_SIZE);
+bool isInsideGrid(const std::vector<std::vector<Robot>>& grid, Position pos) {
+    return (pos.row >= 0 && pos.row < grid.size()) && (pos.col >= 0 && pos.col < grid.size());
 }
 
 bool isWalkable(const std::vector<std::vector<Robot>>& grid, Position pos) {
-    return isInsideGrid(pos) && grid[pos.row][pos.col].getName() != OBSTACLE;
+    return isInsideGrid(grid, pos) && grid[pos.row][pos.col].getName() != OBSTACLE;
 }
 
 std::vector<Position> findPathAStar(const std::vector<std::vector<Robot>>& grid, Position start, Position goal) {
     std::priority_queue<Node, std::vector<Node>, CompareNode> openSet;
+    int grid_size = grid.size();
 
-    int gScore[GRID_SIZE][GRID_SIZE];
-    Position parent[GRID_SIZE][GRID_SIZE];
-
-    for (int r = 0; r < GRID_SIZE; r++) {
-        for (int c = 0; c < GRID_SIZE; c++) {
-            gScore[r][c] = std::numeric_limits<int>::max();
-            parent[r][c] = {-1, -1};
-        }
-    }
+    std::vector<std::vector<int>> gScore(grid_size, std::vector<int>(grid_size, std::numeric_limits<int>::max()));
+    std::vector<std::vector<Position>> parent(grid_size, std::vector<Position>(grid_size, {-1, -1}));
+    bool pathFound = false;
 
     gScore[start.row][start.col] = 0;
 
@@ -79,6 +73,7 @@ std::vector<Position> findPathAStar(const std::vector<std::vector<Robot>>& grid,
         openSet.pop();
         
         if (curr.pos == goal) {
+            pathFound = true;
             break;
         }
         
@@ -101,6 +96,8 @@ std::vector<Position> findPathAStar(const std::vector<std::vector<Robot>>& grid,
         }
     }
 
+    if (!pathFound) return {};
+
     std::vector<Position> path;
     Position current = goal;
 
@@ -114,4 +111,37 @@ std::vector<Position> findPathAStar(const std::vector<std::vector<Robot>>& grid,
     std::reverse(path.begin(), path.end());
 
     return path;
+}
+
+std::vector<std::vector<Robot>> createGrid(
+                                char robotName, 
+                                int gridSize, 
+                                int difficulty, 
+                                std::string& robotType,
+                                Position start_pos = {0, 0}, 
+                                Position goal_pos = {-1, -1}
+) {
+    
+    std::vector<std::vector<Robot>> grid(gridSize, std::vector<Robot>(gridSize, Robot(' ', "")));
+    if (goal_pos == Position{-1, -1}) {
+        goal_pos = {gridSize - 1, gridSize - 1};
+    }
+
+    for (int r = 0; r < gridSize; r++) {
+        for (int c = 0; c < gridSize; c++) {
+            Position current{r, c};
+
+            if (current == start_pos) {
+                grid[r][c] = Robot(robotName, robotType);
+            }
+            else if (current == goal_pos) {
+                grid[r][c] = Robot(GOAL, "goal");
+            }
+            else if (std::rand() % difficulty == 0) {
+                grid[r][c] = Robot(OBSTACLE, "obstacle");
+            }
+        }
+    }
+    
+    return grid;
 }
