@@ -15,6 +15,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(ftxui)
 
-add_executable(pathfinder_main pathfinder_main.cpp)
+add_executable(modern_pathfinder_main modern_pathfinder_main.cpp)
 
-target_link_libraries(pathfinder_main PRIVATE ftxui::ftxui)
+target_link_libraries(modern_pathfinder_main PRIVATE ftxui::ftxui)
