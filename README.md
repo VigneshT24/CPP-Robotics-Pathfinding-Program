@@ -51,6 +51,7 @@ The legacy version is still useful if you want to compare the older approach, se
 
 - A* pathfinding
 - Four-direction movement: up, down, left, right
+- Custom grid creation
 - Random obstacle generation
 - Configurable grid size
 - Configurable goal location
@@ -248,7 +249,7 @@ After reaching the goal, it retraces the saved positions to build the final path
 
 ## Notes
 
-- Grids are randomly generated, so each run can be different.
+- Grids can be custom created or randomly generated, depending on which option is chosen at the start of the simulation.
 - Some generated grids may have no valid path.
 - Increasing difficulty increases obstacle density.
 - Larger grids may require a larger terminal window for the best display.
