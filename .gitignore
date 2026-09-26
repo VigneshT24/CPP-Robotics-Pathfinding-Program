@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+pf_sim
+test
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake

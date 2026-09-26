@@ -4,27 +4,24 @@
 #include <ctime>
 #ifndef ROBOTOBJECTHPP
 #define ROBOTOBJECTHPP
-class Robot
-{
-    public:
+class Robot {
+    private:
         char robotName;
         std::string robotType;
-        
-   Robot(char robotName, std::string robotType)
-    {
-        this->robotName = robotName;
-        this->robotType = robotType;
-    }
+    
+    public:
+        Robot(char robotName, std::string robotType) {
+            this->robotName = robotName;
+            this->robotType = robotType;
+        }
 
-    char getName()
-    {
-        return robotName;
-    }
+        char getName() const {
+            return robotName;
+        }
 
-    std::string getType()
-    {
-        return robotType;
-    }
+        std::string getType() const {
+            return robotType;
+        }
  };
 
 #endif 
