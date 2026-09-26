@@ -45,6 +45,7 @@ struct CompareNode {
     }
 };
 
+constexpr char ROBOT = 'R';
 constexpr char OBSTACLE = '0';
 constexpr char GOAL = 'X';
 constexpr int MAX_DIFFICULTY = 10;
@@ -147,7 +148,7 @@ std::vector<std::vector<Robot>> createGrid(
             }
         }
     }
-    
+
     return grid;
 }
 
@@ -194,6 +195,9 @@ ftxui::Element renderGrid(const std::vector<std::vector<Robot>>& grid, const std
             if (current == robotPos) {
                 cell = cell | ftxui::color(ftxui::Color::Blue);
             }
+            else if (name == ROBOT) {
+                cell = cell | ftxui::color(ftxui::Color::Blue);
+            }
             else if (name == OBSTACLE) {
                 cell = cell | ftxui::color(ftxui::Color::Red);
             }
@@ -213,13 +217,109 @@ ftxui::Element renderGrid(const std::vector<std::vector<Robot>>& grid, const std
     return ftxui::vbox(std::move(rows));
 }
 
+void editGrid(std::vector<std::vector<Robot>>& grid, Position& start, Position& goal) {
+    Position cursorPos = start;
+
+    auto screen = ftxui::ScreenInteractive::Fullscreen();
+
+    auto renderer = ftxui::Renderer([&] {
+        return ftxui::vbox({
+            ftxui::text("Grid Editor") | ftxui::bold | ftxui::center,
+            ftxui::separator(),
+
+            // cursor is shown as '@'
+            renderGrid(grid, {}, cursorPos, '@') | ftxui::center,
+
+            ftxui::separator(),
+            ftxui::text("Arrow Keys: Move Cursor"),
+            ftxui::text("Enter: Start Simulation")
+        });
+    });
+
+    auto app = ftxui::CatchEvent(renderer, [&](ftxui::Event event) {
+        if (event == ftxui::Event::Character(' ')) {
+            if (!(cursorPos == start) && !(cursorPos == goal)) {
+                char current = grid[cursorPos.row][cursorPos.col].getName();
+
+                if (current == OBSTACLE) {
+                    grid[cursorPos.row][cursorPos.col] = Robot(' ', "");
+                }
+                else {
+                    grid[cursorPos.row][cursorPos.col] = Robot(OBSTACLE, "obstacle");
+                }
+            }
+            return true;
+        }
+
+        if (event == ftxui::Event::Character('s')) {
+            if (!(cursorPos == goal)) {
+                grid[start.row][start.col] = Robot(' ', "");
+                start = cursorPos;
+                grid[start.row][start.col] = Robot(ROBOT, "robot");
+            }
+            return true;
+        }
+
+        if (event == ftxui::Event::Character('g')) {
+            if (!(cursorPos == start)) {
+                grid[goal.row][goal.col] = Robot(' ', "");
+                goal = cursorPos;
+                grid[goal.row][goal.col] = Robot(GOAL, "goal");
+            }
+            return true;
+        }
+
+        if (event == ftxui::Event::ArrowUp && cursorPos.row > 0) {
+            cursorPos.row--;
+            return true;
+        }
+
+        if (event == ftxui::Event::ArrowDown && cursorPos.row < grid.size() - 1) {
+            cursorPos.row++;
+            return true;
+        }
+
+        if (event == ftxui::Event::ArrowLeft && cursorPos.col > 0) {
+            cursorPos.col--;
+            return true;
+        }
+
+        if (event == ftxui::Event::ArrowRight && cursorPos.col < grid[0].size() - 1) {
+            cursorPos.col++;
+            return true;
+        }
+
+        if (event == ftxui::Event::Return) {
+            screen.ExitLoopClosure()();
+            return true;
+        }
+
+        return false;
+    });
+
+    screen.Loop(app);
+}
+
 int main() {
     std::srand(std::time(nullptr));
+
+    int mode;
+
+    std::cout << "Make a choice" << std::endl;
+    std::cout << "1 : Randomly generate a grid" << std::endl;
+    std::cout << "2 : Create your own grid" << std::endl;
+    std::cout << "Enter: ";
+    std::cin >> mode;
+
+    while (mode != 1 && mode != 2) {
+        std::cout << "Please enter either 1 or 2: ";
+        std::cin >> mode;
+    }
 
     char robotName = 'R';
     std::string robotType = "Test";
 
-    int gridSize = 15;
+    int gridSize = 20;
     int difficulty = 2;
     int steps_from_start = 0;
     int dist_to_goal = 0;
@@ -233,14 +333,17 @@ int main() {
     Position start{0, 0};
     Position goal{gridSize - 1, gridSize - 1};
 
-    auto grid = createGrid(
-        robotName,
-        gridSize,
-        difficulty,
-        robotType,
-        start,
-        goal
-    );
+    std::vector<std::vector<Robot>> grid;
+
+    if (mode == 1) {
+        grid = createGrid(robotName, gridSize, difficulty, robotType, start, goal);
+    }
+    else {
+        grid = std::vector<std::vector<Robot>>(gridSize, std::vector<Robot>(gridSize, Robot(' ', "")));
+        grid[start.row][start.col] = Robot(ROBOT, "robot");
+        grid[goal.row][goal.col] = Robot(GOAL, "goal");
+        editGrid(grid, start, goal);
+    }
 
     auto path = findPathAStar(grid, start, goal);
 
