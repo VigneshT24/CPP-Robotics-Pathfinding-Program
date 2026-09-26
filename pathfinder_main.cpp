@@ -219,10 +219,19 @@ int main() {
     char robotName = 'R';
     std::string robotType = "Test";
 
-    int gridSize = 20;
+    int gridSize = 15;
     int difficulty = 2;
+    int steps_from_start = 0;
+    int dist_to_goal = 0;
+    int total_cost = 0;
 
-    Position start{0, 0};
+    int up = 0;
+    int down = 0;
+    int left = 0;
+    int right = 0;
+
+
+    Position start{gridSize - 1, gridSize - 1};
     Position goal{gridSize - 1, gridSize - 1};
 
     auto grid = createGrid(
@@ -245,10 +254,29 @@ int main() {
         return ftxui::vbox({
             ftxui::text("A* Pathfinding") | ftxui::bold | ftxui::center,
             ftxui::separator(),
-            renderGrid(grid, path, robotPos, robotName)
-            | ftxui::center,
-            // | ftxui::frame
-            // | ftxui::flex,
+
+            ftxui::hbox({
+                renderGrid(grid, path, robotPos, robotName) | ftxui::center,
+
+                ftxui::separator(),
+
+                ftxui::vbox({
+                    ftxui::text("Simulation Statistics") | ftxui::bold,
+                    ftxui::separator(),
+
+                    ftxui::text("Steps From Start: " + std::to_string(steps_from_start)),
+                    ftxui::text("Distance To Goal: " + std::to_string(dist_to_goal)),
+                    ftxui::text("Total Cost: " + std::to_string(total_cost)),
+
+                    ftxui::separator(),
+
+                    ftxui::text("Up:    " + std::to_string(up)),
+                    ftxui::text("Down:  " + std::to_string(down)),
+                    ftxui::text("Left:  " + std::to_string(left)),
+                    ftxui::text("Right: " + std::to_string(right))
+                }) | ftxui::border
+            }),
+
             ftxui::separator(),
             ftxui::text(status) | ftxui::center,
             ftxui::text("Press Q to quit") | ftxui::center
@@ -270,8 +298,22 @@ int main() {
             return;
         }
 
-        for (const Position& step : path) {
-            robotPos = step;
+        for (std::size_t i = 0; i < path.size(); i++) {
+            robotPos = path[i];
+
+            if (i > 0) {
+                Position prev = path[i - 1];
+                Position curr = path[i];
+
+                if (curr.row < prev.row) up++;
+                else if (curr.row > prev.row) down++;
+                else if (curr.col < prev.col) left++;
+                else if (curr.col > prev.col) right++;
+            }
+
+            steps_from_start = i;
+            dist_to_goal = manhattanDistance(robotPos, goal);
+            total_cost = steps_from_start + dist_to_goal;
             screen.PostEvent(ftxui::Event::Custom);
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
