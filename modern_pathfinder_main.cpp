@@ -230,8 +230,7 @@ int main() {
     int left = 0;
     int right = 0;
 
-
-    Position start{gridSize - 1, gridSize - 1};
+    Position start{0, 0};
     Position goal{gridSize - 1, gridSize - 1};
 
     auto grid = createGrid(
