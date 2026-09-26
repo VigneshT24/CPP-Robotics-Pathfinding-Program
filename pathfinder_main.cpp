@@ -9,6 +9,10 @@
 #include <chrono>
 #include <algorithm>
 #include <limits>
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/screen/screen.hpp>
+#include <ftxui/component/component.hpp>
+#include <ftxui/component/screen_interactive.hpp>
 
 struct Position {
     int row;
@@ -43,13 +47,14 @@ struct CompareNode {
 
 constexpr char OBSTACLE = '0';
 constexpr char GOAL = 'X';
+constexpr int MAX_DIFFICULTY = 10;
 
 int manhattanDistance(Position a, Position b) {
     return std::abs(a.row - b.row) + std::abs(a.col - b.col);
 }
 
 bool isInsideGrid(const std::vector<std::vector<Robot>>& grid, Position pos) {
-    return (pos.row >= 0 && pos.row < grid.size()) && (pos.col >= 0 && pos.col < grid.size());
+    return (pos.row >= 0 && pos.row < grid.size()) && (pos.col >= 0 && pos.col < grid[0].size());
 }
 
 bool isWalkable(const std::vector<std::vector<Robot>>& grid, Position pos) {
@@ -117,7 +122,7 @@ std::vector<std::vector<Robot>> createGrid(
                                 char robotName, 
                                 int gridSize, 
                                 int difficulty, 
-                                std::string& robotType,
+                                const std::string& robotType,
                                 Position start_pos = {0, 0}, 
                                 Position goal_pos = {-1, -1}
 ) {
@@ -132,16 +137,132 @@ std::vector<std::vector<Robot>> createGrid(
             Position current{r, c};
 
             if (current == start_pos) {
-                grid[r][c] = Robot(robotName, robotType);
+                grid[r][c] = Robot(' ', "");
             }
             else if (current == goal_pos) {
                 grid[r][c] = Robot(GOAL, "goal");
             }
-            else if (std::rand() % difficulty == 0) {
+            else if (std::rand() % MAX_DIFFICULTY < difficulty) {
                 grid[r][c] = Robot(OBSTACLE, "obstacle");
             }
         }
     }
     
     return grid;
+}
+
+ftxui::Element renderGrid(const std::vector<std::vector<Robot>>& grid, Position robotPos, char robotName) {
+    ftxui::Elements rows;
+
+    for (int r = 0; r < grid.size(); r++) {
+        ftxui::Elements cells;
+
+        for (int c = 0; c < grid[r].size(); c++) {
+            Position current{r, c};
+
+            char name = grid[r][c].getName();
+
+            // robot visually overrides whatever is underneath
+            if (current == robotPos) {
+                name = robotName;
+            }
+
+            auto cell =
+                ftxui::text(std::string(1, name))
+                | ftxui::center
+                | ftxui::border
+                | ftxui::size(ftxui::WIDTH, ftxui::EQUAL, 5)
+                | ftxui::size(ftxui::HEIGHT, ftxui::EQUAL, 3);
+
+            if (current == robotPos) {
+                cell = cell | ftxui::color(ftxui::Color::Blue);
+            }
+            else if (name == OBSTACLE) {
+                cell = cell | ftxui::color(ftxui::Color::Red);
+            }
+            else if (name == GOAL) {
+                cell = cell | ftxui::color(ftxui::Color::Green);
+            }
+
+            cells.push_back(cell);
+        }
+
+        rows.push_back(ftxui::hbox(std::move(cells)));
+    }
+
+    return ftxui::vbox(std::move(rows));
+}
+
+int main() {
+    std::srand(std::time(nullptr));
+
+    char robotName = 'R';
+    std::string robotType = "Test";
+
+    int gridSize = 10;
+    int difficulty = 4;
+
+    Position start{0, 0};
+    Position goal{gridSize - 1, gridSize - 1};
+
+    auto grid = createGrid(
+        robotName,
+        gridSize,
+        difficulty,
+        robotType,
+        start,
+        goal
+    );
+
+    auto path = findPathAStar(grid, start, goal);
+
+    Position robotPos = start;
+    std::string status = path.empty() ? "No path found." : "Path found.";
+
+    auto screen = ftxui::ScreenInteractive::Fullscreen();
+
+    auto renderer = ftxui::Renderer([&] {
+        return ftxui::vbox({
+            ftxui::text("A* Pathfinding") | ftxui::bold | ftxui::center,
+            ftxui::separator(),
+            renderGrid(grid, robotPos, robotName)
+            | ftxui::center,
+            ftxui::separator(),
+            ftxui::text(status) | ftxui::center,
+            ftxui::text("Press Q to quit") | ftxui::center
+        });
+    });
+
+    auto app = ftxui::CatchEvent(renderer, [&](ftxui::Event event) {
+        if (event == ftxui::Event::Character('q') ||
+            event == ftxui::Event::Character('Q')) {
+            screen.ExitLoopClosure()();
+            return true;
+        }
+        return false;
+    });
+
+    std::thread animation_thread([&] {
+        if (path.empty()) {
+            screen.PostEvent(ftxui::Event::Custom);
+            return;
+        }
+
+        for (const Position& step : path) {
+            robotPos = step;
+            screen.PostEvent(ftxui::Event::Custom);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        status = "Goal reached.";
+        screen.PostEvent(ftxui::Event::Custom);
+    });
+
+    screen.Loop(app);
+
+    if (animation_thread.joinable()) {
+        animation_thread.join();
+    }
+
+    return 0;
 }
