@@ -251,7 +251,7 @@ int main() {
 
     auto renderer = ftxui::Renderer([&] {
         return ftxui::vbox({
-            ftxui::text("A* Pathfinding") | ftxui::bold | ftxui::center,
+            ftxui::text("Modern Pathfinding") | ftxui::bold | ftxui::center,
             ftxui::separator(),
 
             ftxui::hbox({
