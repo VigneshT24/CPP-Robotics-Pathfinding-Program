@@ -151,7 +151,7 @@ std::vector<std::vector<Robot>> createGrid(
     return grid;
 }
 
-ftxui::Element renderGrid(const std::vector<std::vector<Robot>>& grid, Position robotPos, char robotName) {
+ftxui::Element renderGrid(const std::vector<std::vector<Robot>>& grid, const std::vector<Position>& path, Position robotPos, char robotName) {
     ftxui::Elements rows;
 
     for (int r = 0; r < grid.size(); r++) {
@@ -162,9 +162,26 @@ ftxui::Element renderGrid(const std::vector<std::vector<Robot>>& grid, Position 
 
             char name = grid[r][c].getName();
 
+            bool visited = false;
+            
+            for (const Position& p : path) {
+                if (p == robotPos) {
+                    break;
+                }
+
+                if (p == current) {
+                    visited = true;
+                    break;
+                }
+            }
+
             // robot visually overrides whatever is underneath
             if (current == robotPos) {
                 name = robotName;
+            }
+
+            else if (visited) {
+                name = '*';
             }
 
             auto cell =
@@ -183,6 +200,9 @@ ftxui::Element renderGrid(const std::vector<std::vector<Robot>>& grid, Position 
             else if (name == GOAL) {
                 cell = cell | ftxui::color(ftxui::Color::Green);
             }
+            else if (name == '*') {
+                cell = cell | ftxui::color(ftxui::Color::LightYellow3);
+            }
 
             cells.push_back(cell);
         }
@@ -199,8 +219,8 @@ int main() {
     char robotName = 'R';
     std::string robotType = "Test";
 
-    int gridSize = 10;
-    int difficulty = 4;
+    int gridSize = 20;
+    int difficulty = 2;
 
     Position start{0, 0};
     Position goal{gridSize - 1, gridSize - 1};
@@ -225,8 +245,10 @@ int main() {
         return ftxui::vbox({
             ftxui::text("A* Pathfinding") | ftxui::bold | ftxui::center,
             ftxui::separator(),
-            renderGrid(grid, robotPos, robotName)
+            renderGrid(grid, path, robotPos, robotName)
             | ftxui::center,
+            // | ftxui::frame
+            // | ftxui::flex,
             ftxui::separator(),
             ftxui::text(status) | ftxui::center,
             ftxui::text("Press Q to quit") | ftxui::center
@@ -251,7 +273,7 @@ int main() {
         for (const Position& step : path) {
             robotPos = step;
             screen.PostEvent(ftxui::Event::Custom);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
 
         status = "Goal reached.";
